@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preciazo SV - Comparador & Rastreador de Precios</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+  <!-- ================= TOP HEADER ================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Branding -->
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('catalog')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+            <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-1.5">
+              <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Preciazo</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold uppercase tracking-wider">SV</span>
+            </div>
+            <p class="text-[11px] text-slate-500 hidden sm:block">Comparador de Precios & Alertas Telegram</p>
+          </div>
+        </div>
+
+        <!-- Supermarkets Monitored Pill -->
+        <div class="hidden md:flex items-center space-x-2 bg-slate-100 py-1.5 px-3 rounded-full text-xs font-medium text-slate-600">
+          <span>Comparando:</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-xs text-emerald-700 font-semibold border border-slate-200">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Súper Selectos
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-xs text-blue-700 font-semibold border border-slate-200">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span> Walmart
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-xs text-red-700 font-semibold border border-slate-200">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span> Maxi Despensa
+          </span>
+        </div>
+
+        <!-- Notifications & Quick Action -->
+        <div class="flex items-center space-x-3">
+          <!-- Notification Bell -->
+          <div class="relative">
+            <button id="notif-btn" onclick="toggleNotifications()" class="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors">
+              <i data-lucide="bell" class="w-5 h-5"></i>
+              <span id="notif-badge" class="hidden absolute top-1 right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse">0</span>
+            </button>
+
+            <!-- Notifications Dropdown -->
+            <div id="notif-menu" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50">
+              <div class="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                <span class="font-bold text-sm text-slate-800">Alertas de Precios</span>
+                <button onclick="clearAllNotifications()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">Limpiar todo</button>
+              </div>
+              <div id="notif-list" class="max-h-80 overflow-y-auto divide-y divide-slate-50">
+                <!-- Notifications dynamically loaded -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action: Botón Escanear Ahora -->
+          <button onclick="triggerManualScan()" id="btn-quick-scan" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition shadow-sm shadow-emerald-600/20">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Escanear Ahora</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 sm:space-x-3 border-t border-slate-100 overflow-x-auto py-2 scrollbar-none text-xs sm:text-sm font-semibold">
+        <button onclick="switchTab('catalog')" id="tab-btn-catalog" class="tab-btn flex items-center gap-2 px-3 py-2 rounded-lg text-emerald-600 bg-emerald-50 transition">
+          <i data-lucide="layout-grid" class="w-4 h-4"></i>
+          <span>Comparador</span>
+        </button>
+        <button onclick="switchTab('deals')" id="tab-btn-deals" class="tab-btn flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+          <i data-lucide="tag" class="w-4 h-4"></i>
+          <span>Ofertas & Promos</span>
+          <span class="bg-red-100 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">🔥 Top</span>
+        </button>
+        <button onclick="switchTab('trends')" id="tab-btn-trends" class="tab-btn flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>
+          <span>Altas y Bajas</span>
+        </button>
+        <button onclick="switchTab('favorites')" id="tab-btn-favorites" class="tab-btn flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+          <i data-lucide="star" class="w-4 h-4"></i>
+          <span>Mis Favoritos</span>
+          <span id="fav-count-pill" class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">2</span>
+        </button>
+        <button onclick="switchTab('automation')" id="tab-btn-automation" class="tab-btn flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+          <i data-lucide="bot" class="w-4 h-4"></i>
+          <span>Automatización & Telegram</span>
+          <span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Cron</span>
+        </button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTENT ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ================= TAB 1: COMPARADOR & CATÁLOGO ================= -->
+    <section id="tab-catalog" class="tab-content space-y-6">
+
+      <!-- Hero Banner & Stats -->
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 shadow-xl">
+        <div class="relative z-10 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold mb-3 border border-emerald-500/30">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            Monitoreo en vivo de Súper Selectos & Supermercados
+          </div>
+          <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight">Compara antes de comprar y ahorra hasta un 25%</h1>
+          <p class="mt-2 text-sm sm:text-base text-slate-300">
+            Detectamos bajas históricas, combos 2x1 y enviamos notificaciones directas a tu teléfono por Telegram.
+          </p>
+
+          <!-- Search Bar inside Hero -->
+          <div class="mt-5 relative max-w-xl">
+            <i data-lucide="search" class="w-5 h-5 absolute left-4 top-3.5 text-slate-400"></i>
+            <input type="text" id="catalog-search" oninput="handleSearch(this.value)" placeholder="Buscar por leche, aceite, plátanos, cereales, marcas..." 
+                   class="w-full pl-12 pr-4 py-3 bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-slate-900 placeholder:text-slate-400 rounded-2xl text-sm outline-none border border-white/20 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 transition backdrop-blur-md">
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="mt-6 sm:mt-0 sm:absolute sm:right-8 sm:bottom-8 flex items-center gap-3">
+          <div class="bg-white/10 backdrop-blur-md border border-white/10 p-3 sm:p-4 rounded-2xl text-center">
+            <div id="stat-monitored" class="text-2xl font-black text-emerald-400">55</div>
+            <div class="text-[11px] text-slate-300 uppercase tracking-wider">Productos</div>
+          </div>
+          <div class="bg-white/10 backdrop-blur-md border border-white/10 p-3 sm:p-4 rounded-2xl text-center">
+            <div id="stat-offers" class="text-2xl font-black text-amber-400">34</div>
+            <div class="text-[11px] text-slate-300 uppercase tracking-wider">En Rebaja</div>
+          </div>
+          <div class="bg-white/10 backdrop-blur-md border border-white/10 p-3 sm:p-4 rounded-2xl text-center">
+            <div class="text-2xl font-black text-teal-400">3</div>
+            <div class="text-[11px] text-slate-300 uppercase tracking-wider">Supermercados</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters & Sorting Bar -->
+      <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        
+        <!-- Category Filter Chips -->
+        <div class="flex items-center gap-2 overflow-x-auto scrollbar-none pb-2 md:pb-0" id="category-pills">
+          <button onclick="setCategoryFilter('all')" class="cat-pill active px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white whitespace-nowrap transition">
+            Todas las categorías
+          </button>
+        </div>
+
+        <!-- Controls: Only Offers & Sorting -->
+        <div class="flex items-center gap-3 shrink-0">
+          <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 select-none hover:bg-slate-100">
+            <input type="checkbox" id="filter-offers-toggle" onchange="toggleOffersOnly(this.checked)" class="rounded text-emerald-600 focus:ring-emerald-500">
+            <span>Solo Ofertas / Bajas</span>
+          </label>
+
+          <select id="sort-select" onchange="handleSort(this.value)" class="text-xs font-semibold bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="savings">Mayor Ahorro ($)</option>
+            <option value="price_asc">Precio: Menor a Mayor</option>
+            <option value="price_desc">Precio: Mayor a Menor</option>
+            <option value="name">Alfabético (A-Z)</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- Products Grid -->
+      <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Injected dynamically -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="no-products-msg" class="hidden text-center py-16 bg-white rounded-3xl border border-slate-200">
+        <i data-lucide="search-x" class="w-12 h-12 text-slate-400 mx-auto mb-3"></i>
+        <h3 class="text-lg font-bold text-slate-700">No se encontraron productos</h3>
+        <p class="text-sm text-slate-500">Intenta con otro término o desmarca el filtro de ofertas.</p>
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 2: OFERTAS & PROMOS ================= -->
+    <section id="tab-deals" class="tab-content hidden space-y-6">
+      
+      <div class="bg-gradient-to-r from-red-600 to-amber-600 text-white p-6 rounded-3xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <span class="px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider">Radar de Rebajas</span>
+          <h2 class="text-2xl font-black mt-2">Ofertas y Promociones Activas</h2>
+          <p class="text-sm text-red-100 mt-1">Descubre los combos 2x1, rebajas de hasta el 25% y precios de liquidación.</p>
+        </div>
+        <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20 text-center">
+          <i data-lucide="flame" class="w-7 h-7 text-amber-300"></i>
+          <div class="text-left">
+            <div class="text-xs text-red-100 font-medium">Ahorro Máximo Detectado</div>
+            <div class="text-xl font-black text-white">$0.33 por unidad (20%)</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="deals-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Injected dynamically -->
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 3: ALTAS Y BAJAS (TENDENCIAS) ================= -->
+    <section id="tab-trends" class="tab-content hidden space-y-6">
+
+      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+        <h2 class="text-xl font-bold text-slate-900">Monitor de Altas y Bajas de Precios</h2>
+        <p class="text-sm text-slate-500 mt-1">
+          Identifica qué productos están en su punto más bajo histórico y cuáles han sufrido incrementos recientes.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          
+          <!-- Column: Bajas -->
+          <div class="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2 text-emerald-800 font-bold">
+                <i data-lucide="trending-down" class="w-5 h-5 text-emerald-600"></i>
+                <span>Bajas Recientes (Comprar ahora)</span>
+              </div>
+              <span id="trends-bajas-count" class="px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800 text-xs font-bold">0</span>
+            </div>
+            <div id="trends-bajas-list" class="space-y-3">
+              <!-- Loaded dynamically -->
+            </div>
+          </div>
+
+          <!-- Column: Altas -->
+          <div class="bg-red-50/60 border border-red-200/80 rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2 text-red-800 font-bold">
+                <i data-lucide="trending-up" class="w-5 h-5 text-red-600"></i>
+                <span>Altas de Precio (Esperar a que baje)</span>
+              </div>
+              <span id="trends-altas-count" class="px-2 py-0.5 rounded-full bg-red-200 text-red-800 text-xs font-bold">0</span>
+            </div>
+            <div id="trends-altas-list" class="space-y-3">
+              <!-- Loaded dynamically -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 4: MIS FAVORITOS & ALERTAS ================= -->
+    <section id="tab-favorites" class="tab-content hidden space-y-6">
+      
+      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Mis Productos Favoritos & Alertas</h2>
+          <p class="text-sm text-slate-500 mt-1">Configura un precio deseado y recibe avisos inmediatos en tu Telegram.</p>
+        </div>
+        <button onclick="switchTab('automation')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span>Configurar Alertas Telegram</span>
+        </button>
+      </div>
+
+      <div id="favorites-list" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Loaded dynamically -->
+      </div>
+
+      <div id="empty-favorites-msg" class="hidden text-center py-16 bg-white rounded-3xl border border-slate-200">
+        <i data-lucide="star" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+        <h3 class="text-lg font-bold text-slate-700">Aún no tienes favoritos</h3>
+        <p class="text-sm text-slate-500">Haz clic en la estrella de cualquier producto en el comparador para recibir alertas.</p>
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 5: AUTOMATIZACIÓN & TELEGRAM ================= -->
+    <section id="tab-automation" class="tab-content hidden space-y-6">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Column 1: Scraper Automático con Cron -->
+        <div class="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-6">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <i data-lucide="clock" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-slate-900">Scraper Automático (Cron Job)</h3>
+                  <p class="text-xs text-slate-500">Descarga y actualiza precios automáticamente</p>
+                </div>
+              </div>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Activo
+              </span>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 text-xs text-slate-600 mb-5">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-700">Horario Programado:</span>
+                <span class="font-bold text-emerald-700">Todos los días a las 6:00 AM</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-700">Expresión Cron:</span>
+                <code class="bg-white px-2 py-0.5 rounded border border-slate-200 font-mono text-[11px]">0 6 * * *</code>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-700">Último escaneo registrado:</span>
+                <span id="cron-last-scraped" class="font-semibold text-slate-800">Cargando...</span>
+              </div>
+            </div>
+
+            <!-- Stats from last scan -->
+            <div class="grid grid-cols-3 gap-3 mb-5">
+              <div class="bg-emerald-50/50 border border-emerald-100 p-3 rounded-xl text-center">
+                <div class="text-[11px] text-emerald-800 font-medium">Extraídos</div>
+                <div id="stat-scan-total" class="text-lg font-black text-emerald-700">-</div>
+              </div>
+              <div class="bg-blue-50/50 border border-blue-100 p-3 rounded-xl text-center">
+                <div class="text-[11px] text-blue-800 font-medium">Bajas Detectadas</div>
+                <div id="stat-scan-drops" class="text-lg font-black text-blue-700">-</div>
+              </div>
+              <div class="bg-purple-50/50 border border-purple-100 p-3 rounded-xl text-center">
+                <div class="text-[11px] text-purple-800 font-medium">Duración</div>
+                <div id="stat-scan-duration" class="text-lg font-black text-purple-700">-</div>
+              </div>
+            </div>
+
+            <div class="text-xs text-slate-500 space-y-1">
+              <div class="font-bold text-slate-700 mb-1">Secciones monitoreadas en vivo:</div>
+              <div>🛒 Súper Selectos: <b>Ofertas Irresistibles</b></div>
+              <div>🥛 Súper Selectos: <b>Lácteos & Leches</b></div>
+              <div>🛢️ Súper Selectos: <b>Aceites & Grasas</b></div>
+              <div>🌾 Súper Selectos: <b>Granos Básicos (Arroz)</b></div>
+            </div>
+          </div>
+
+          <!-- Trigger Button -->
+          <div class="pt-4 border-t border-slate-100">
+            <button onclick="triggerManualScan()" id="btn-run-scraper" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              <span>⚡ Ejecutar Escaneo en Vivo Ahora</span>
+            </button>
+            <div id="scraper-status-msg" class="hidden mt-3 text-xs text-center font-semibold"></div>
+          </div>
+        </div>
+
+        <!-- Column 2: Notificaciones por WhatsApp Directo (Código QR) -->
+        <div class="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-6">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <i data-lucide="qr-code" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-slate-900">WhatsApp Web Directo (QR)</h3>
+                  <p class="text-xs text-slate-500">Sin bots de terceros — Vinculación directa con QR</p>
+                </div>
+              </div>
+              <span id="wa-qr-status-pill" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
+                No vinculado
+              </span>
+            </div>
+
+            <!-- Disconnected State: Instructions & Generate QR Button -->
+            <div id="wa-box-disconnected" class="space-y-4">
+              <div class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-100 text-xs text-emerald-950 space-y-2">
+                <div class="font-bold flex items-center gap-1 text-emerald-900">
+                  <i data-lucide="smartphone" class="w-4 h-4"></i>
+                  ¿Cómo vincular tu WhatsApp en 10 segundos?
+                </div>
+                <div><b>1.</b> Abre <b>WhatsApp</b> en tu celular.</div>
+                <div><b>2.</b> Toca los tres puntos o Ajustes $\rightarrow$ <b>Dispositivos vinculados</b>.</div>
+                <div><b>3.</b> Toca <b>"Vincular un dispositivo"</b> y escanea el código QR que aparecerá abajo.</div>
+              </div>
+
+              <div class="text-center py-4">
+                <button onclick="generateWhatsAppQr()" id="btn-gen-qr" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20">
+                  <i data-lucide="qr-code" class="w-4 h-4"></i>
+                  <span>📲 Mostrar Código QR para Escanear</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- QR Ready State: Displays QR Code Image & Countdown -->
+            <div id="wa-box-qr" class="hidden text-center space-y-3">
+              <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl inline-block mx-auto shadow-inner">
+                <img id="wa-qr-image" src="" alt="WhatsApp QR Code" class="w-56 h-56 mx-auto rounded-xl">
+              </div>
+              <div class="flex items-center justify-center gap-2 text-xs font-bold text-emerald-700 animate-pulse">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span>Esperando que escanees el código con tu celular...</span>
+              </div>
+              <p class="text-[11px] text-slate-400">
+                Abre WhatsApp $\rightarrow$ Dispositivos vinculados $\rightarrow$ Apunta la cámara aquí
+              </p>
+              <button onclick="generateWhatsAppQr()" class="text-xs text-slate-500 hover:text-emerald-600 font-semibold underline">
+                Regenerar nuevo código QR
+              </button>
+            </div>
+
+            <!-- Connected State: Confirmed & Ready to send alerts -->
+            <div id="wa-box-connected" class="hidden space-y-4">
+              <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl text-center space-y-1">
+                <div class="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-2 shadow-sm">
+                  <i data-lucide="check" class="w-5 h-5"></i>
+                </div>
+                <h4 class="font-bold text-sm text-emerald-900">¡Tu WhatsApp está vinculado!</h4>
+                <div id="wa-connected-phone" class="text-xs text-emerald-700 font-mono font-bold">+503...</div>
+                <p class="text-[11px] text-emerald-800 pt-1">
+                  Las alertas automáticas llegarán directamente a tu chat personal de WhatsApp cada vez que un producto favorito baje de precio.
+                </p>
+              </div>
+
+              <!-- Test Alert to Connected WhatsApp -->
+              <button onclick="sendDirectWhatsAppTest()" id="btn-send-wa-direct-test" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                <span>Enviar Alerta de Prueba a mi WhatsApp</span>
+              </button>
+
+              <button onclick="disconnectWhatsAppDirect()" class="w-full py-2 bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                <span>Desvincular WhatsApp</span>
+              </button>
+            </div>
+
+          </div>
+
+          <div id="wa-qr-msg" class="hidden text-xs text-center font-semibold p-2 rounded-xl mt-2"></div>
+        </div>
+
+        <!-- Column 2: Notificaciones por Telegram Bot -->
+        <div class="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-6">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                  <i data-lucide="send" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-slate-900">Alertas a tu Celular (Telegram)</h3>
+                  <p class="text-xs text-slate-500">Recibe avisos inmediatos cuando un favorito baje</p>
+                </div>
+              </div>
+              <span id="telegram-active-pill" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
+                Inactivo
+              </span>
+            </div>
+
+            <!-- 3-step Instructions -->
+            <div class="bg-blue-50/60 p-4 rounded-2xl border border-blue-100 text-xs text-blue-900 space-y-1.5 mb-5">
+              <div class="font-bold flex items-center gap-1">
+                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                ¿Cómo activar las alertas en 1 minuto?
+              </div>
+              <div><b>1.</b> En Telegram busca al bot <a href="https://t.me/BotFather" target="_blank" class="underline font-bold">@BotFather</a>, escribe <code>/newbot</code> y copia el <b>Token</b>.</div>
+              <div><b>2.</b> En Telegram busca a <a href="https://t.me/userinfobot" target="_blank" class="underline font-bold">@userinfobot</a> para obtener tu <b>Chat ID</b> numérico.</div>
+              <div><b>3.</b> Pega ambos datos abajo, presiona <b>"Probar Conexión"</b> y ¡listo!</div>
+            </div>
+
+            <!-- Configuration Form -->
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Telegram Bot Token</label>
+                <input type="text" id="tg-token" placeholder="Ej: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" 
+                       class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tu Chat ID de Telegram</label>
+                <input type="text" id="tg-chat-id" placeholder="Ej: 987654321" 
+                       class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+
+              <div class="pt-2">
+                <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 select-none">
+                  <input type="checkbox" id="tg-enabled-toggle" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
+                  <span>Habilitar notificaciones automáticas por Telegram</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions: Test and Save -->
+          <div class="pt-4 border-t border-slate-100 flex items-center gap-3">
+            <button onclick="testTelegramAlert()" id="btn-test-tg" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+              <i data-lucide="bell-ring" class="w-4 h-4"></i>
+              <span>Probar en mi Celular</span>
+            </button>
+            <button onclick="saveTelegramConfig()" id="btn-save-tg" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm shadow-blue-600/20">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              <span>Guardar Credenciales</span>
+            </button>
+          </div>
+          <div id="tg-status-msg" class="hidden text-xs text-center font-semibold mt-2"></div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ================= MODAL: HISTORIAL DE PRECIOS & GRÁFICA ================= -->
+  <div id="history-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <i data-lucide="line-chart" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-product-name" class="font-bold text-slate-900 text-base line-clamp-1">Nombre del Producto</h3>
+            <p id="modal-product-cat" class="text-xs text-slate-500">Categoría</p>
+          </div>
+        </div>
+        <button onclick="closeHistoryModal()" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Quick Metrics inside Modal -->
+      <div class="grid grid-cols-3 gap-3 my-5">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+          <div class="text-[11px] text-slate-500 uppercase font-semibold">Precio Mínimo</div>
+          <div id="modal-min-price" class="text-base font-black text-emerald-600">$0.00</div>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+          <div class="text-[11px] text-slate-500 uppercase font-semibold">Precio Promedio</div>
+          <div id="modal-avg-price" class="text-base font-black text-slate-700">$0.00</div>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+          <div class="text-[11px] text-slate-500 uppercase font-semibold">Tendencia</div>
+          <div id="modal-trend-badge" class="text-xs font-black inline-block mt-0.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">BAJA</div>
+        </div>
+      </div>
+
+      <!-- Chart Container -->
+      <div class="h-64 w-full">
+        <canvas id="priceHistoryChart"></canvas>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Historial de los últimos 30 días</span>
+        <button onclick="closeHistoryModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-700">Preciazo SV</span> — Comparador de Precios, Ofertas y Alertas
+      </div>
+      <div>
+        Monitoreo automático con Súper Selectos, Walmart y Maxi Despensa.
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================= APP LOGIC JAVASCRIPT ================= -->
+  <script>
+    // State
+    let currentTab = 'catalog';
+    let allProducts = [];
+    let currentSearch = '';
+    let currentCategory = 'all';
+    let onlyOffers = false;
+    let currentSort = 'savings';
+    let priceChart = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      fetchCategories();
+      fetchProducts();
+      fetchNotifications();
+      fetchFavorites();
+      loadScraperStatus();
+      loadTelegramConfig();
+      loadWhatsAppQrStatus();
+    });
+
+    function switchTab(tabId) {
+      currentTab = tabId;
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('text-emerald-600', 'bg-emerald-50');
+        btn.classList.add('text-slate-600');
+      });
+
+      const activeContent = document.getElementById(`tab-${tabId}`);
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (activeContent) activeContent.classList.remove('hidden');
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600');
+        activeBtn.classList.add('text-emerald-600', 'bg-emerald-50');
+      }
+
+      if (tabId === 'deals') renderDealsTab();
+      if (tabId === 'trends') renderTrendsTab();
+      if (tabId === 'favorites') fetchFavorites();
+      if (tabId === 'automation') {
+        loadScraperStatus();
+        loadTelegramConfig();
+        loadWhatsAppQrStatus();
+      }
+      lucide.createIcons();
+    }
+
+    async function fetchProducts() {
+      try {
+        const params = new URLSearchParams({
+          search: currentSearch,
+          category: currentCategory,
+          onlyOffers: onlyOffers ? 'true' : 'false',
+          sortBy: currentSort
+        });
+
+        const res = await fetch(`/api/products?${params.toString()}`);
+        const data = await res.json();
+        allProducts = data.products;
+
+        renderProductGrid(allProducts);
+        updateStatsCounters(allProducts);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+      }
+    }
+
+    function renderProductGrid(products) {
+      const grid = document.getElementById('products-grid');
+      const emptyMsg = document.getElementById('no-products-msg');
+
+      if (!products || products.length === 0) {
+        grid.innerHTML = '';
+        emptyMsg.classList.remove('hidden');
+        return;
+      }
+      emptyMsg.classList.add('hidden');
+
+      grid.innerHTML = products.map(p => {
+        const selectosStore = p.stores.find(s => s.slug === 'selectos');
+        const walmartStore = p.stores.find(s => s.slug === 'walmart');
+        const maxiStore = p.stores.find(s => s.slug === 'maxi-despensa');
+
+        let trendBadge = '';
+        if (p.trend === 'BAJA') {
+          trendBadge = `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800"><i data-lucide="trending-down" class="w-3 h-3"></i> Rebaja</span>`;
+        } else if (p.trend === 'ALTA') {
+          trendBadge = `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-800"><i data-lucide="trending-up" class="w-3 h-3"></i> Subió</span>`;
+        } else {
+          trendBadge = `<span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Estable</span>`;
+        }
+
+        let promoBadgeHtml = '';
+        if (p.promoBadge) {
+          promoBadgeHtml = `<div class="absolute top-3 left-3 z-10 bg-red-600 text-white text-[11px] font-black px-2.5 py-1 rounded-xl shadow-md uppercase tracking-wider">${p.promoBadge}</div>`;
+        }
+
+        return `
+          <div class="bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-lg transition-all duration-300 p-5 flex flex-col justify-between relative group">
+            ${promoBadgeHtml}
+
+            <button onclick="toggleFavorite('${p.id}')" class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/90 backdrop-blur-xs border border-slate-200 shadow-xs flex items-center justify-center text-slate-400 hover:text-amber-500 hover:scale-110 transition">
+              <i data-lucide="star" class="w-4 h-4"></i>
+            </button>
+
+            <div>
+              <div class="w-full h-44 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden mb-4 p-2 relative">
+                <img src="${p.image}" alt="${p.name}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300" 
+                     onerror="this.src='/product_images/ImageNotAvailable.png'">
+              </div>
+
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg">${p.category}</span>
+                ${trendBadge}
+              </div>
+
+              <h3 class="font-bold text-slate-800 text-sm leading-snug line-clamp-2 title="${p.name}">
+                ${p.name}
+              </h3>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="mt-4 pt-4 border-t border-slate-100 space-y-2">
+              
+              <div class="flex items-center justify-between p-2 rounded-xl ${p.bestStore === 'Súper Selectos' ? 'bg-emerald-50/70 border border-emerald-200' : 'bg-slate-50'}">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  <span class="text-xs font-semibold text-slate-700">Súper Selectos</span>
+                  ${p.bestStore === 'Súper Selectos' ? '<span class="text-[10px] bg-emerald-600 text-white font-black px-1.5 py-0.2 rounded">MEJOR</span>' : ''}
+                </div>
+                <div class="text-right">
+                  <span class="text-sm font-extrabold ${p.bestStore === 'Súper Selectos' ? 'text-emerald-700' : 'text-slate-800'}">$${selectosStore ? selectosStore.currentPrice.toFixed(2) : '-'}</span>
+                  ${selectosStore && selectosStore.regularPrice > selectosStore.currentPrice ? `<span class="block text-[10px] text-slate-400 line-through">$${selectosStore.regularPrice.toFixed(2)}</span>` : ''}
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between p-2 rounded-xl ${p.bestStore === 'Walmart' ? 'bg-blue-50/70 border border-blue-200' : 'bg-slate-50'}">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                  <span class="text-xs font-semibold text-slate-700">Walmart SV</span>
+                  ${p.bestStore === 'Walmart' ? '<span class="text-[10px] bg-blue-600 text-white font-black px-1.5 py-0.2 rounded">MEJOR</span>' : ''}
+                </div>
+                <div class="text-right">
+                  <span class="text-sm font-extrabold ${p.bestStore === 'Walmart' ? 'text-blue-700' : 'text-slate-800'}">$${walmartStore ? walmartStore.currentPrice.toFixed(2) : '-'}</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between p-2 rounded-xl ${p.bestStore === 'Maxi Despensa' ? 'bg-red-50/70 border border-red-200' : 'bg-slate-50'}">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                  <span class="text-xs font-semibold text-slate-700">Maxi Despensa</span>
+                  ${p.bestStore === 'Maxi Despensa' ? '<span class="text-[10px] bg-red-600 text-white font-black px-1.5 py-0.2 rounded">MEJOR</span>' : ''}
+                </div>
+                <div class="text-right">
+                  <span class="text-sm font-extrabold ${p.bestStore === 'Maxi Despensa' ? 'text-red-700' : 'text-slate-800'}">$${maxiStore ? maxiStore.currentPrice.toFixed(2) : '-'}</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Savings Summary & Actions -->
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div>
+                <span class="text-[11px] text-slate-500 block">Ahorro vs tienda más cara:</span>
+                <span class="text-xs font-black text-emerald-600">Hasta $${p.maxSavings.toFixed(2)} (${p.maxSavingsPercent}%)</span>
+              </div>
+
+              <button onclick="openHistoryModal('${p.id}')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 text-xs font-bold transition flex items-center gap-1.5">
+                <i data-lucide="line-chart" class="w-3.5 h-3.5"></i>
+                <span>Historial</span>
+              </button>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    async function fetchCategories() {
+      try {
+        const res = await fetch('/api/categories');
+        const categories = await res.json();
+        const pillsContainer = document.getElementById('category-pills');
+
+        const pillsHtml = categories.slice(0, 6).map(c => `
+          <button onclick="setCategoryFilter('${c.name}')" class="cat-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 whitespace-nowrap transition">
+            ${c.name} (${c.count})
+          </button>
+        `).join('');
+
+        pillsContainer.innerHTML = `
+          <button onclick="setCategoryFilter('all')" class="cat-pill active px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white whitespace-nowrap transition">
+            Todas
+          </button>
+          ${pillsHtml}
+        `;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function setCategoryFilter(cat) {
+      currentCategory = cat;
+      document.querySelectorAll('.cat-pill').forEach(btn => {
+        btn.classList.remove('bg-emerald-600', 'text-white', 'active');
+        btn.classList.add('bg-slate-100', 'text-slate-700');
+      });
+      event.target.classList.remove('bg-slate-100', 'text-slate-700');
+      event.target.classList.add('bg-emerald-600', 'text-white', 'active');
+      fetchProducts();
+    }
+
+    let searchTimeout = null;
+    function handleSearch(val) {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        currentSearch = val;
+        fetchProducts();
+      }, 300);
+    }
+
+    function toggleOffersOnly(checked) {
+      onlyOffers = checked;
+      fetchProducts();
+    }
+
+    function handleSort(val) {
+      currentSort = val;
+      fetchProducts();
+    }
+
+    function updateStatsCounters(products) {
+      document.getElementById('stat-monitored').innerText = products.length;
+      const offersCount = products.filter(p => p.promoBadge || p.trend === 'BAJA').length;
+      document.getElementById('stat-offers').innerText = offersCount;
+    }
+
+    // Modal Historial
+    async function openHistoryModal(productId) {
+      try {
+        const res = await fetch(`/api/products/${productId}`);
+        const data = await res.json();
+        const p = data.product;
+
+        document.getElementById('modal-product-name').innerText = p.name;
+        document.getElementById('modal-product-cat').innerText = p.category;
+
+        const prices = p.history.map(h => h.price);
+        const minPrice = Math.min(...prices);
+        const avgPrice = (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2);
+
+        document.getElementById('modal-min-price').innerText = `$${minPrice.toFixed(2)}`;
+        document.getElementById('modal-avg-price').innerText = `$${avgPrice}`;
+
+        const badge = document.getElementById('modal-trend-badge');
+        if (p.trend === 'BAJA') {
+          badge.className = 'text-xs font-black inline-block mt-0.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+          badge.innerText = 'BAJA (-' + p.maxSavingsPercent + '%)';
+        } else if (p.trend === 'ALTA') {
+          badge.className = 'text-xs font-black inline-block mt-0.5 px-2 py-0.5 rounded-full bg-red-100 text-red-800';
+          badge.innerText = 'ALTA';
+        } else {
+          badge.className = 'text-xs font-black inline-block mt-0.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700';
+          badge.innerText = 'ESTABLE';
+        }
+
+        document.getElementById('history-modal').classList.remove('hidden');
+
+        const ctx = document.getElementById('priceHistoryChart').getContext('2d');
+        if (priceChart) priceChart.destroy();
+
+        const labels = p.history.map(h => {
+          const parts = h.date.split('-');
+          return `${parts[2]}/${parts[1]}`;
+        });
+
+        priceChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Precio ($)',
+              data: prices,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.3,
+              pointBackgroundColor: '#047857',
+              pointRadius: 5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { ticks: { callback: val => `$${val.toFixed(2)}` } }
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('history-modal').classList.add('hidden');
+    }
+
+    // Notifications
+    async function fetchNotifications() {
+      try {
+        const res = await fetch('/api/notifications');
+        const data = await res.json();
+        const badge = document.getElementById('notif-badge');
+        const list = document.getElementById('notif-list');
+
+        if (data.unreadCount > 0) {
+          badge.innerText = data.unreadCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+
+        if (data.notifications.length === 0) {
+          list.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">No hay alertas recientes</div>`;
+          return;
+        }
+
+        list.innerHTML = data.notifications.map(n => `
+          <div class="p-3.5 hover:bg-slate-50 transition cursor-pointer ${n.read ? 'opacity-60' : 'bg-emerald-50/30'}" onclick="markNotifRead('${n.id}')">
+            <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+              <span class="font-bold ${n.type === 'price_drop' ? 'text-emerald-700' : 'text-amber-700'}">${n.title}</span>
+              <span>${new Date(n.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <p class="text-xs text-slate-700 font-medium">${n.message}</p>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function toggleNotifications() {
+      document.getElementById('notif-menu').classList.toggle('hidden');
+    }
+
+    async function markNotifRead(id) {
+      await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
+      fetchNotifications();
+    }
+
+    async function clearAllNotifications() {
+      await fetch('/api/notifications/clear-all', { method: 'POST' });
+      fetchNotifications();
+    }
+
+    // Favorites
+    async function toggleFavorite(productId) {
+      try {
+        await fetch('/api/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, targetPrice: null, notifyOnOffer: true })
+        });
+        alert('⭐ ¡Producto añadido a favoritos! Recibirás alertas cuando baje de precio.');
+        fetchFavorites();
+        fetchNotifications();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function fetchFavorites() {
+      try {
+        const res = await fetch('/api/favorites');
+        const favs = await res.json();
+        document.getElementById('fav-count-pill').innerText = favs.length;
+
+        const list = document.getElementById('favorites-list');
+        const emptyMsg = document.getElementById('empty-favorites-msg');
+
+        if (favs.length === 0) {
+          list.innerHTML = '';
+          emptyMsg.classList.remove('hidden');
+          return;
+        }
+        emptyMsg.classList.add('hidden');
+
+        list.innerHTML = favs.map(f => {
+          const p = f.product;
+          return `
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center justify-between gap-4">
+              <div class="flex items-center gap-4">
+                <img src="${p.image}" class="w-16 h-16 object-contain rounded-xl bg-slate-50 p-1" onerror="this.src='/product_images/ImageNotAvailable.png'">
+                <div>
+                  <h4 class="font-bold text-sm text-slate-800 line-clamp-1">${p.name}</h4>
+                  <div class="text-xs text-slate-500 mt-1">
+                    Mejor precio hoy: <b class="text-emerald-600 font-black">$${p.bestPrice.toFixed(2)}</b> en ${p.bestStore}
+                  </div>
+                  <div class="mt-2 flex items-center gap-2 text-xs">
+                    <span class="text-slate-500 font-medium">Alerta si baja de:</span>
+                    <input type="number" step="0.05" value="${f.targetPrice || ''}" placeholder="$..." 
+                           onchange="updateTargetPrice('${p.id}', this.value)"
+                           class="w-20 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500">
+                  </div>
+                </div>
+              </div>
+
+              <button onclick="removeFavorite('${p.id}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition">
+                <i data-lucide="trash-2" class="w-5 h-5"></i>
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        lucide.createIcons();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function updateTargetPrice(productId, price) {
+      await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, targetPrice: parseFloat(price) })
+      });
+      fetchNotifications();
+    }
+
+    async function removeFavorite(productId) {
+      await fetch(`/api/favorites/${productId}`, { method: 'DELETE' });
+      fetchFavorites();
+    }
+
+    // Deals & Trends
+    async function renderDealsTab() {
+      const res = await fetch('/api/deals');
+      const data = await res.json();
+      const grid = document.getElementById('deals-grid');
+
+      grid.innerHTML = data.deals.map(p => `
+        <div class="bg-white rounded-3xl border border-red-100 p-5 shadow-xs flex flex-col justify-between relative overflow-hidden">
+          <div class="absolute -right-8 -top-8 w-24 h-24 bg-red-50 rounded-full"></div>
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="bg-red-600 text-white text-[11px] font-black px-2.5 py-1 rounded-xl uppercase tracking-wider">
+                ${p.promoBadge || `-${p.maxSavingsPercent}% DESCUENTO`}
+              </span>
+              <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg">${p.bestStore}</span>
+            </div>
+            <div class="w-full h-36 rounded-2xl bg-slate-50 flex items-center justify-center p-2 mb-3">
+              <img src="${p.image}" class="max-h-full object-contain" onerror="this.src='/product_images/ImageNotAvailable.png'">
+            </div>
+            <h4 class="font-bold text-slate-800 text-sm line-clamp-2">${p.name}</h4>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <div>
+              <span class="text-xs text-slate-400 block">Precio Oferta</span>
+              <span class="text-lg font-black text-red-600">$${p.bestPrice.toFixed(2)}</span>
+            </div>
+            <button onclick="openHistoryModal('${p.id}')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition">
+              Ver Historial
+            </button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    async function renderTrendsTab() {
+      const res = await fetch('/api/trends');
+      const data = await res.json();
+
+      document.getElementById('trends-bajas-count').innerText = data.bajas.count;
+      document.getElementById('trends-altas-count').innerText = data.altas.count;
+
+      const bajasList = document.getElementById('trends-bajas-list');
+      bajasList.innerHTML = data.bajas.items.map(p => `
+        <div class="bg-white p-3 rounded-xl border border-emerald-100 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img src="${p.image}" class="w-10 h-10 object-contain rounded-lg bg-slate-50" onerror="this.src='/product_images/ImageNotAvailable.png'">
+            <div>
+              <div class="font-bold text-xs text-slate-800 line-clamp-1">${p.name}</div>
+              <div class="text-[11px] text-emerald-600 font-semibold">Bajó a $${p.bestPrice.toFixed(2)} en ${p.bestStore}</div>
+            </div>
+          </div>
+          <button onclick="openHistoryModal('${p.id}')" class="text-slate-400 hover:text-emerald-600">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+
+      const altasList = document.getElementById('trends-altas-list');
+      altasList.innerHTML = data.altas.items.map(p => `
+        <div class="bg-white p-3 rounded-xl border border-red-100 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img src="${p.image}" class="w-10 h-10 object-contain rounded-lg bg-slate-50" onerror="this.src='/product_images/ImageNotAvailable.png'">
+            <div>
+              <div class="font-bold text-xs text-slate-800 line-clamp-1">${p.name}</div>
+              <div class="text-[11px] text-red-600 font-semibold">Subió a $${p.bestPrice.toFixed(2)} en ${p.bestStore}</div>
+            </div>
+          </div>
+          <button onclick="openHistoryModal('${p.id}')" class="text-slate-400 hover:text-red-600">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    // ================= AUTOMATION & SCRAPER =================
+    async function loadScraperStatus() {
+      try {
+        const res = await fetch('/api/scraper/status');
+        const data = await res.json();
+
+        if (data.lastScraped) {
+          const dateObj = new Date(data.lastScraped);
+          document.getElementById('cron-last-scraped').innerText = `${dateObj.toLocaleDateString()} a las ${dateObj.toLocaleTimeString()}`;
+        } else {
+          document.getElementById('cron-last-scraped').innerText = 'Ninguno aún';
+        }
+
+        if (data.lastScanStats) {
+          document.getElementById('stat-scan-total').innerText = data.lastScanStats.totalExtracted || '-';
+          document.getElementById('stat-scan-drops').innerText = data.lastScanStats.priceDrops || '0';
+          document.getElementById('stat-scan-duration').innerText = (data.lastScanStats.durationSec || '-') + 's';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function triggerManualScan() {
+      const btn = document.getElementById('btn-run-scraper');
+      const quickBtn = document.getElementById('btn-quick-scan');
+      const msg = document.getElementById('scraper-status-msg');
+
+      if (btn) btn.disabled = true;
+      if (btn) btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Escaneando Súper Selectos en vivo...</span>`;
+      if (quickBtn) quickBtn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Escaneando...</span>`;
+
+      if (msg) {
+        msg.className = 'mt-3 text-xs text-center font-semibold text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200';
+        msg.innerText = '⏳ Conectando con las secciones de Súper Selectos... por favor espera unos segundos.';
+        msg.classList.remove('hidden');
+      }
+
+      try {
+        const res = await fetch('/api/scraper/run', { method: 'POST' });
+        const data = await res.json();
+
+        if (res.ok) {
+          if (msg) {
+            msg.className = 'mt-3 text-xs text-center font-semibold text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200';
+            msg.innerHTML = `✅ <b>¡Escaneo completado con éxito!</b> Se procesaron ${data.stats.totalExtracted} productos (${data.stats.updatedCount} actualizados, ${data.stats.priceDrops} bajas detectadas) en ${data.stats.durationSec}s.`;
+          }
+          alert(`⚡ Escaneo en vivo completado: ${data.stats.totalExtracted} productos procesados en ${data.stats.durationSec} segundos.`);
+          fetchProducts();
+          fetchCategories();
+          fetchNotifications();
+          loadScraperStatus();
+        } else {
+          if (msg) {
+            msg.className = 'mt-3 text-xs text-center font-semibold text-red-800 bg-red-50 p-2 rounded-xl';
+            msg.innerText = `❌ Error en el escaneo: ${data.error}`;
+          }
+        }
+      } catch (err) {
+        if (msg) {
+          msg.className = 'mt-3 text-xs text-center font-semibold text-red-800 bg-red-50 p-2 rounded-xl';
+          msg.innerText = `❌ Error de red: ${err.message}`;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4"></i><span>⚡ Ejecutar Escaneo en Vivo Ahora</span>`;
+        }
+        if (quickBtn) {
+          quickBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Escanear Ahora</span>`;
+        }
+        lucide.createIcons();
+      }
+    }
+
+    // ================= TELEGRAM BOT =================
+    async function loadTelegramConfig() {
+      try {
+        const res = await fetch('/api/telegram/config');
+        const data = await res.json();
+
+        if (data.chatId) document.getElementById('tg-chat-id').value = data.chatId;
+        if (data.maskedToken) document.getElementById('tg-token').placeholder = `Guardado: ${data.maskedToken}`;
+        document.getElementById('tg-enabled-toggle').checked = !!data.enabled;
+
+        const pill = document.getElementById('telegram-active-pill');
+        if (data.enabled && data.hasToken && data.chatId) {
+          pill.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold';
+          pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-blue-500"></span> Conectado`;
+        } else {
+          pill.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold';
+          pill.innerHTML = `Inactivo`;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function saveTelegramConfig() {
+      const token = document.getElementById('tg-token').value;
+      const chatId = document.getElementById('tg-chat-id').value;
+      const enabled = document.getElementById('tg-enabled-toggle').checked;
+      const msg = document.getElementById('tg-status-msg');
+
+      try {
+        const res = await fetch('/api/telegram/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ botToken: token, chatId, enabled })
+        });
+        const data = await res.json();
+
+        msg.className = 'text-xs text-center font-semibold text-blue-800 bg-blue-50 p-2 rounded-xl mt-2';
+        msg.innerText = '✅ Configuración de Telegram guardada correctamente.';
+        msg.classList.remove('hidden');
+        loadTelegramConfig();
+      } catch (err) {
+        msg.className = 'text-xs text-center font-semibold text-red-800 bg-red-50 p-2 rounded-xl mt-2';
+        msg.innerText = `❌ Error: ${err.message}`;
+        msg.classList.remove('hidden');
+      }
+    }
+
+    async function testTelegramAlert() {
+      const token = document.getElementById('tg-token').value;
+      const chatId = document.getElementById('tg-chat-id').value;
+      const msg = document.getElementById('tg-status-msg');
+
+      msg.className = 'text-xs text-center font-semibold text-blue-800 bg-blue-50 p-2 rounded-xl mt-2';
+      msg.innerText = '⏳ Enviando mensaje de prueba a Telegram...';
+      msg.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/telegram/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ botToken: token, chatId })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          msg.className = 'text-xs text-center font-semibold text-emerald-800 bg-emerald-50 p-2 rounded-xl mt-2';
+          msg.innerText = '📱 ¡Mensaje de prueba recibido en tu teléfono! La conexión funciona al 100%.';
+        } else {
+          msg.className = 'text-xs text-center font-semibold text-red-800 bg-red-50 p-2 rounded-xl mt-2';
+          msg.innerText = `❌ Error de Telegram: ${data.error}`;
+        }
+      } catch (err) {
+        msg.className = 'text-xs text-center font-semibold text-red-800 bg-red-50 p-2 rounded-xl mt-2';
+        msg.innerText = `❌ Error de red: ${err.message}`;
+      }
+    }
+    // ================= WHATSAPP DIRECT QR FUNCTIONS =================
+    let waPollTimer = null;
+
+    async function loadWhatsAppQrStatus() {
+      try {
+        const res = await fetch('/api/whatsapp/qr-status');
+        const data = await res.json();
+        updateWhatsAppUI(data);
+
+        // Auto-poll if waiting for QR scan
+        if (data.status === 'QR_READY' || data.status === 'CONNECTING') {
+          if (!waPollTimer) {
+            waPollTimer = setInterval(loadWhatsAppQrStatus, 2000);
+          }
+        } else {
+          if (waPollTimer) {
+            clearInterval(waPollTimer);
+            waPollTimer = null;
+          }
+        }
+      } catch (err) {
+        console.error('Error loading WhatsApp status:', err);
+      }
+    }
+
+    function updateWhatsAppUI(data) {
+      const pill = document.getElementById('wa-qr-status-pill');
+      const boxDisconnected = document.getElementById('wa-box-disconnected');
+      const boxQr = document.getElementById('wa-box-qr');
+      const boxConnected = document.getElementById('wa-box-connected');
+      const qrImage = document.getElementById('wa-qr-image');
+      const phoneLabel = document.getElementById('wa-connected-phone');
+
+      boxDisconnected.classList.add('hidden');
+      boxQr.classList.add('hidden');
+      boxConnected.classList.add('hidden');
+
+      if (data.isConnected) {
+        // Connected!
+        pill.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold';
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Conectado`;
+        boxConnected.classList.remove('hidden');
+        if (data.user?.phone) {
+          phoneLabel.innerText = `+${data.user.phone}`;
+        }
+      } else if (data.status === 'QR_READY' && data.qrDataUrl) {
+        // Show QR Code
+        pill.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold animate-pulse';
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span> Esperando escaneo`;
+        boxQr.classList.remove('hidden');
+        qrImage.src = data.qrDataUrl;
+      } else if (data.status === 'CONNECTING') {
+        pill.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold animate-pulse';
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-blue-500"></span> Vinculando...`;
+        boxQr.classList.remove('hidden');
+      } else {
+        // Disconnected
+        pill.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold';
+        pill.innerHTML = `No vinculado`;
+        boxDisconnected.classList.remove('hidden');
+      }
+
+      lucide.createIcons();
+    }
+
+    async function generateWhatsAppQr() {
+      const btn = document.getElementById('btn-gen-qr');
+      const msg = document.getElementById('wa-qr-msg');
+
+      if (btn) btn.disabled = true;
+      if (btn) btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Generando código QR...</span>`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/whatsapp/generate-qr', { method: 'POST' });
+        const data = await res.json();
+        updateWhatsAppUI(data);
+
+        // Start polling
+        if (!waPollTimer) {
+          waPollTimer = setInterval(loadWhatsAppQrStatus, 2000);
+        }
+      } catch (err) {
+        if (msg) {
+          msg.className = 'text-xs text-center font-semibold text-red-800 bg-red-50 p-2 rounded-xl mt-2';
+          msg.innerText = `❌ Error generando QR: ${err.message}`;
+          msg.classList.remove('hidden');
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="qr-code" class="w-4 h-4"></i><span>📲 Mostrar Código QR para Escanear</span>`;
+          lucide.createIcons();
+        }
+      }
+    }
+
+    async function sendDirectWhatsAppTest() {
+      const btn = document.getElementById('btn-send-wa-direct-test');
+      const msg = document.getElementById('wa-qr-msg');
+
+      if (btn) btn.disabled = true;
+      if (btn) btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Enviando mensaje...</span>`;
+
+      try {
+        const res = await fetch('/api/whatsapp/send-direct-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetPhone: null })
+        });
+        const data = await res.json();
+
+        msg.classList.remove('hidden');
+        if (res.ok) {
+          msg.className = 'text-xs text-center font-semibold text-emerald-800 bg-emerald-50 p-2.5 rounded-xl mt-2 border border-emerald-200';
+          msg.innerText = '📱 ¡Mensaje de prueba recibido en tu WhatsApp! Revisa tu chat personal.';
+        } else {
+          msg.className = 'text-xs text-center font-semibold text-red-800 bg-red-50 p-2 rounded-xl mt-2';
+          msg.innerText = `❌ Error: ${data.error}`;
+        }
+      } catch (err) {
+        msg.className = 'text-xs text-center font-semibold text-red-800 bg-red-50 p-2 rounded-xl mt-2';
+        msg.innerText = `❌ Error de red: ${err.message}`;
+        msg.classList.remove('hidden');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i><span>Enviar Alerta de Prueba a mi WhatsApp</span>`;
+          lucide.createIcons();
+        }
+      }
+    }
+
+    async function disconnectWhatsAppDirect() {
+      if (!confirm('¿Deseas desvincular tu WhatsApp de Preciazo SV?')) return;
+
+      try {
+        await fetch('/api/whatsapp/disconnect', { method: 'POST' });
+        loadWhatsAppQrStatus();
+        alert('WhatsApp desvinculado.');
+      } catch (err) {
+        alert('Error desvinculando: ' + err.message);
+      }
+    }
+  </script>
+
+</body>
+</html>

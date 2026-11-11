@@ -1,0 +1,124 @@
+/***** VENTANA CHAT *****/
+
+#ventanaBwChat {
+	position:fixed;
+	bottom:0;
+	right:30px;
+	width:300px;
+	height:36px;
+	-webkit-transition: height 0.3s ease;
+	-moz-transition: height 0.3s ease;
+	-o-transition: height 0.3s ease;
+	transition: height 0.3s ease;
+	z-index:500;
+	max-width:90%;
+	overflow: hidden;
+    -webkit-box-shadow: 0px 0px 15px 0px rgba(50, 50, 50, 0.5);
+    -moz-box-shadow:    0px 0px 15px 0px rgba(50, 50, 50, 0.5);
+    box-shadow:         0px 0px 15px 0px rgba(50, 50, 50, 0.5);
+}
+#ventanaBwChat.noOpenBar{
+    height: 0;
+}
+
+#ventanaBwChat .contenido_chat {
+	width:100%;
+	height:380px;
+	position:absolute;
+	top:36px;
+	left:0;
+	background:#fff;
+	z-index: 20;
+	-webkit-transition: top 0.3s ease;
+	-moz-transition: top 0.3s ease;
+	-o-transition: top 0.3s ease;
+}
+#ventanaBwChat.noOpenBar .contenido_chat,
+.mostrar_ventana_bwchat #ventanaBwChat .contenido_chat{
+	top: 0;
+}
+#ventanaBwChat .contenido_chat iframe{
+	width:100%;
+	height:100%;
+}
+
+
+.mostrar_ventana_bwchat #ventanaBwChat,
+.mostrar_ventana_bwchat #ventanaBwChat.noOpenBar {
+	height: 380px;
+	-webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    border-radius: 0;
+}
+
+#ventanaBwChat .bwchat_open_bar{
+    height: 36px;
+    width: 100%;
+    background-color: #555;
+    color: #fff;
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1;
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1 !important;
+    font-weight: normal;
+    text-align: left;
+    padding: 10px 60px 0 15px;
+    cursor: pointer;
+    
+    opacity:1;
+	-webkit-transition: opacity 0.6s ease;
+	-moz-transition: opacity 0.6s ease;
+	-o-transition: opacity 0.6s ease;
+	transition: opacity 0.6s ease;
+    
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -o-box-sizing: border-box;
+    box-sizing: border-box;
+	
+	-webkit-border-radius: 5px 5px 0 0;
+    -moz-border-radius: 5px 5px 0 0;
+    border-radius: 5px 5px 0 0;
+	
+	-webkit-box-shadow: 0px 0px 15px 0px rgba(50, 50, 50, 0.5);
+    -moz-box-shadow:    0px 0px 15px 0px rgba(50, 50, 50, 0.5);
+    box-shadow:         0px 0px 15px 0px rgba(50, 50, 50, 0.5);
+}
+#ventanaBwChat.noOpenBar .bwchat_open_bar{
+    display: none;
+}
+#ventanaBwChat .bwchat_open_bar span{
+    position: absolute;
+    right: 15px;
+    top: 6px;
+    font-size: 20px;
+}
+.mostrar_ventana_bwchat #ventanaBwChat .bwchat_open_bar {
+	display: none;
+}
+
+
+.mostrar_ventana_bwchat .hide_on_bwchat_open{
+	display: none !important;
+}
+
+
+@media only screen and (max-device-width: 768px){
+    #ventanaBwChat {
+		right: 15px;
+	}
+    
+    body.mostrar_ventana_bwchat{
+        height: 100% !important;
+        min-height: 100% !important;
+        max-height: 100% !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        position: fixed !important;
+    }
+}
